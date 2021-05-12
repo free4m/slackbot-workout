@@ -55,11 +55,10 @@ class User:
     def get_user_handle(self) -> str:
         return "@" + self.username
 
-    """
-    Returns true if a user is currently "active", else false
-    """
-
     def is_active(self) -> bool:
+        """
+        Returns true if a user is currently "active", else false
+        """
         try:
             params = {"token": USER_TOKEN_STRING, "user": self.id}
             response = requests.get(
@@ -68,6 +67,7 @@ class User:
             status = json.loads(response.text, encoding="utf-8")["presence"]
 
             return status == "active"
+
         except requests.exceptions.ConnectionError:
             print("Error fetching online status for " + self.get_user_handle())
             return False

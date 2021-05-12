@@ -161,7 +161,9 @@ def fetch_active_users(bot):
     """
     # Check for new members
     params = {"token": USER_TOKEN_STRING, "channel": bot.channel_id}
-    response = requests.get("https://slack.com/api/conversations.members", params=params)
+    response = requests.get(
+        "https://slack.com/api/conversations.members", params=params
+    )
     user_ids = json.loads(response.text)["members"]
 
     active_users = []
@@ -221,7 +223,17 @@ def select_exercise(bot):
     Selects the next exercise
     """
     idx = random.randrange(0, len(bot.exercises))
-    return bot.exercises[idx]
+    exercise = bot.exercises[idx]
+
+    # ensuring that the same workout is not returned twice in a row
+    with open(
+        bot.csv_filename + "_DEBUG" if bot.debug else bot.csv_filename, "r"
+    ) as log:
+        last_exercise_logged = log.readlines()[-1]
+        if exercise.get("name") not in last_exercise_logged:
+            return exercise
+        else:
+            return select_exercise(bot)
 
 
 def select_next_time_interval(bot):
@@ -255,10 +267,14 @@ def assign_exercise(bot, exercise):
             user = bot.user_cache[user_id]
             user.add_exercise(exercise, exercise_reps)
 
-        log_exercise(bot, "@channel", exercise["name"], exercise_reps, exercise["units"])
+        log_exercise(
+            bot, "@channel", exercise["name"], exercise_reps, exercise["units"]
+        )
 
     else:
-        winners = [select_user(bot, exercise) for x in range(bot.num_people_per_callout)]
+        winners = [
+            select_user(bot, exercise) for x in range(bot.num_people_per_callout)
+        ]
 
         for i in range(bot.num_people_per_callout):
             winner_announcement += str(winners[i].get_user_handle())
@@ -270,7 +286,13 @@ def assign_exercise(bot, exercise):
                 winner_announcement += ", "
 
             winners[i].add_exercise(exercise, exercise_reps)
-            log_exercise(bot, winners[i].get_user_handle(), exercise["name"], exercise_reps, exercise["units"])
+            log_exercise(
+                bot,
+                winners[i].get_user_handle(),
+                exercise["name"],
+                exercise_reps,
+                exercise["units"],
+            )
 
     # Announce the user
     if not bot.debug:
@@ -329,8 +351,10 @@ def is_office_hours(bot):
         return True
     now = datetime.datetime.now()
     now_time = now.time()
-    if datetime.time(bot.office_hours_begin) <= now_time <= datetime.time(
-        bot.office_hours_end
+    if (
+        datetime.time(bot.office_hours_begin)
+        <= now_time
+        <= datetime.time(bot.office_hours_end)
     ):
         if bot.debug:
             print("in office hours")
